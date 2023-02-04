@@ -1,0 +1,31 @@
+
+{
+    "radios": [
+      {
+        "name": "NRJ",
+        "frequency": "103.9 FM",
+        "url": "https://www.nrj.fr/webradios"
+      },
+      {
+        "name": "RTL",
+        "frequency": "104.3 FM",
+        "url": "https://www.radio.fr/s/rtl"
+      },
+      {
+        "name": "France Bleu Armorique",
+        "frequency": "103.1 FM",
+        "url": "https://www.francebleu.fr/armorique"
+      },
+      {
+        "name": "SkyRock",
+        "frequency": "88.9 FM",
+        "url": "https://www.radio.fr/s/skyrock"
+      },
+      {
+        "name": "RFM",
+        "frequency": "96.9 FM",
+        "url": "https://www.radio.fr/s/rfm"
+      }
+    ]
+  }
+  
