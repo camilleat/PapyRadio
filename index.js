@@ -1,6 +1,6 @@
 const fs = require('fs');
 const re = require('socket.io-client');
-
+var frequence = 103.1;
 
 // Read the JSON file
 fs.readFile('./radios.json', 'utf-8', (err, data) => {
@@ -10,10 +10,11 @@ fs.readFile('./radios.json', 'utf-8', (err, data) => {
     const radioData = JSON.parse(data);
 
     // Get the radio frequency passed as parameter
-    const radioFrequency = process.argv[2];
+    //const radioFrequency = process.argv[2];
 
     // Search for the radio with the given frequency
-    const radio = radioData.radios.find(radio => radio.frequency === radioFrequency);
+    let freqFM = frequence.toString() + " FM";
+    const radio = radioData.radios.find(radio => radio.frequency === freqFM);
     console.log(radio);
 
     // Check if the radio was found
@@ -28,9 +29,11 @@ fs.readFile('./radios.json', 'utf-8', (err, data) => {
             console.log("Playing webRadio : " + radioURlString);
             //socket.close();
     } else {
-        console.error(`Radio with frequency ${radioFrequency} not found`);
+        console.error(`Radio with frequency ${freqFM} not found`);
     }
 });
+
+
 
 
 
