@@ -25,6 +25,26 @@
         "name": "RFM",
         "frequency": "96.9 FM",
         "url": "https://www.radio.fr/s/rfm"
+      },
+      {
+        "name": "France Inter",
+        "frequency": "93.5",
+        "url": "https://www.radio.fr/s/franceinter"
+      },
+      {
+        "name": "France Info",
+        "frequency": "105.5 FM",
+        "url": "https://www.radio.fr/s/franceinfo"
+      },
+      {
+        "name": "FIP",
+        "frequency": "101.2 FM",
+        "url": "https://www.radio.fr/s/fip"
+      },
+      {
+        "name": "Radio Classique",
+        "frequency": "92.3 FM",
+        "url": "https://www.radio.fr/s/radioclassique"
       }
     ]
   }
