@@ -1,0 +1,39 @@
+{
+	"name": "PapyRadio",
+	"version": "1.0.0",
+	"description": "Permits the user to switch between a given list of radio with the use of a rotary encoder",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "Camille, Matys, Yoan, Axel",
+	"license": "MIT",
+	"volumio_info": {
+		"prettyName": "Papy Radio",
+		"icon": "fa-circle-o-notch",
+		"plugin_type": "user_interface"
+	},
+	"dependencies": {
+		"fs-extra": "^0.28.0",
+		"kew": "^0.7.0",
+		"onoff-rotary": "https://github.com/Saiyato/onoff-rotary/tarball/2336ea47d95ab57ab1091e429db9dd4930abbfaf",
+		"v-conf": "^1.4.2",
+		"socket.io-client": "^1.4.5"
+	},
+	"devDependencies": {},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Saiyato/volumio-rotary-encoder-plugin.git"
+	},
+	"keywords": [
+		"rotary",
+		"encoder",
+		"rotaryencoder",
+		"volumio",
+    "radios"
+	],
+	"bugs": {
+	"url": "?"
+	},
+	"homepage": "https://github.com/camilleat/PapyRadio"
+}
