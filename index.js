@@ -1,40 +1,16 @@
-//FAUT DEPLACER CETTE PARTIE LA ---------------------------------------------------------------------------------------------
+'use strict'; //Assure le strict mode du plugin pour éviter les erreurs de code
 
-const fs = require('fs');
-const re = require('socket.io-client');
+var libQ = require('kew');
+var fs=require('fs-extra');
+const path=require('path');
+var exec = require('child_process').exec;
+var spawn = require('child_process').spawn;
 var frequence = 103.1;
 
-// Read the JSON file
-fs.readFile('./radios.json', 'utf-8', (err, data) => {
-    if (err) throw err;
-
-    // Parse the JSON data
-    const radioData = JSON.parse(data);
-
-    // Get the radio frequency passed as parameter
-    //const radioFrequency = process.argv[2];
-
-    // Search for the radio with the given frequency
-    let freqFM = frequence.toString() + " FM";
-    const radio = radioData.radios.find(radio => radio.frequency === freqFM);
-    console.log(radio);
-
-    // Check if the radio was found
-    if (radio) {
-        // Get the URL of the radio
-            const radioURL = radio.url;
-            const radioURlString = radioURL.toString();
-            console.log(radioURL);
-            // Play the radio using Volumio
-            const socket = re.io("http://volumio.local");
-            socket.emit('play', {"value": radioURlString});
-            console.log("Playing webRadio : " + radioURlString);
-            //socket.close();
-    } else {
-        console.error(`Radio with frequency ${freqFM} not found`);
-    }
-});
-
+const Gpio = require('onoff').Gpio;
+const io = require('socket.io-client');
+const dtoverlayRegex = /^([0-9]+):\s+rotary-encoder\s+pin_a=([0-9]+) pin_b=([0-9]+).*$/gm
+const fs = require('fs');
 
 const maxRotaries = 2;
 const rotaryTypes = new Array(
@@ -46,13 +22,13 @@ const rotaryTypes = new Array(
 );
 const dialActions = new Array(
 	"VOLUME",
-	"SKIP",
+	"SKIP"
 );
 const btnActions = new Array(
 	"PLAYPAUSE",
 	"STOP",
 	"SHUTDOWN",
-	"REBOOT",
+	"REBOOT"
 );
 
 //Constructeur ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -67,6 +43,11 @@ function PapyRadio(context) {
 	this.configManager = this.context.configManager;
 }
 
+
+
+
+
+
 //Configure les settings quand l'appli Volumio démarre ------------------------------------------------------------------------------------------------------------
 
 PapyRadio.prototype.onVolumioStart = function()
@@ -78,6 +59,10 @@ PapyRadio.prototype.onVolumioStart = function()
 
     return libQ.resolve();
 }
+
+
+
+
 
 //Configure les settings quand le plugin PapyRadio démarre ------------------------------------------------------------------------------------------------------------
 PapyRadio.prototype.onStart = function() {
@@ -107,17 +92,20 @@ PapyRadio.prototype.onStart = function() {
 	})
 	.then(_=> {
 		self.commandRouter.pushToastMessage('success',"Rotary Encoder II - successfully loaded")
-		if (self.debugLogging) self.logger.info('[ROTARYENCODER2] onStart: Plugin successfully started.');				
+		if (self.debugLogging) self.logger.info('[PAPYRADIO] onStart: Plugin successfully started.');				
 		defer.resolve();				
 	})
 	.fail(error => {
-		self.commandRouter.pushToastMessage('error',"Rotary Encoder II", self.getI18nString('ROTARYENCODER2.TOAST_STOP_FAIL'))
-		self.logger.error('[ROTARYENCODER2] onStart: Rotarys not initialized: '+error);
+		self.commandRouter.pushToastMessage('error',"Rotary Encoder II", self.getI18nString('PAPYRADIO.TOAST_STOP_FAIL'))
+		self.logger.error('[PAPYRADIO] onStart: Rotarys not initialized: '+error);
 		defer.reject();
 	});
 
     return defer.promise;
 };
+
+
+
 
 
 //Configure les settings quand le plugin PapyRadio s'arrête ------------------------------------------------------------------------------------------------------------
@@ -156,6 +144,9 @@ PapyRadio.prototype.onRestart = function() {
 
 	if (self.debugLogging) self.logger.info('[PAPYRADIO] onRestart: free resources');
 };
+
+
+
 
 
 //Configuration Methods ------------------------------------------------------------------------------------------------------------------------------------------
@@ -220,139 +211,341 @@ PapyRadio.prototype.getConfigurationFiles = function() {
 
 
 
-//Gets called when user saves settings from the GUI  -----------------------------------------------------------------------------------------------------------------------------------
-rotaryencoder2.prototype.updateEncoder = function(data){
+
+
+
+//Function to recursively activate all rotaries that are passed by Index in an Array -----------------------------------------------------------------------
+rotaryencoder2.prototype.activateRotaries = function (rotaryIndexArray) {
 	var self = this;
 	var defer = libQ.defer();
-	var dataString = JSON.stringify(data);
+	var rotaryIndex;
 
-	var rotaryIndex = parseInt(dataString.match(/rotaryType([0-9])/)[1]);
-	if (self.debugLogging) self.logger.info('[ROTARYENCODER2] updateEncoder: Rotary'+(rotaryIndex + 1)+' with:' + JSON.stringify(data));
+	if (self.debugLogging) self.logger.info('[PAPYRADIO] activateRotaries: ' + rotaryIndexArray.map(i =>  {return i + 1}));
 
-	self.sanityCheckSettings(rotaryIndex, data)
-	.then(_ => {
-		//disable all rotaries before we make changes
-		//this is necessary, since there seems to be an issue in the Kernel, that breaks the 
-		//eventHandlers if a dtoverlay with low index is removed and others with higher index exist
-		return self.deactivateRotaries([...Array(maxRotaries).keys()])
-		.then(_=>{
-			return self.deactivateButtons([...Array(maxRotaries).keys()])
-		})
-	})
-	.then(_ => {
-		if (self.debugLogging) self.logger.info('[ROTARYENCODER2] updateEncoder: Changing Encoder '+(rotaryIndex + 1)+' Settings to new values');
-		if (data['enabled'+rotaryIndex]==true) {
-			self.config.set('rotaryType'+rotaryIndex, (data['rotaryType'+rotaryIndex].value));
-			self.config.set('pinA'+rotaryIndex, (data['pinA'+rotaryIndex]));
-			self.config.set('pinB'+rotaryIndex, (data['pinB'+rotaryIndex]));
-			self.config.set('dialAction'+rotaryIndex, (data['dialAction'+rotaryIndex].value));
-			self.config.set('socketCmdCCW'+rotaryIndex, (data['socketCmdCCW'+rotaryIndex]));
-			self.config.set('socketDataCCW'+rotaryIndex, (data['socketDataCCW'+rotaryIndex]));
-			self.config.set('socketCmdCW'+rotaryIndex, (data['socketCmdCW'+rotaryIndex]));
-			self.config.set('socketDataCW'+rotaryIndex, (data['socketDataCW'+rotaryIndex]));
-			self.config.set('pinPush'+rotaryIndex, (data['pinPush'+rotaryIndex]));
-			self.config.set('pinPushDebounce'+rotaryIndex, (data['pinPushDebounce'+rotaryIndex]));
-			self.config.set('pushState'+rotaryIndex,(data['pushState'+rotaryIndex]))
-			self.config.set('pushAction'+rotaryIndex, (data['pushAction'+rotaryIndex].value));
-			self.config.set('socketCmdPush'+rotaryIndex, (data['socketCmdPush'+rotaryIndex]));
-			self.config.set('socketDataPush'+rotaryIndex, (data['socketDataPush'+rotaryIndex]));
-			self.config.set('longPushAction'+rotaryIndex, (data['longPushAction'+rotaryIndex].value));
-			self.config.set('socketCmdLongPush'+rotaryIndex, (data['socketCmdLongPush'+rotaryIndex]));
-			self.config.set('socketDataLongPush'+rotaryIndex, (data['socketDataLongPush'+rotaryIndex]));
-			self.config.set('enabled'+rotaryIndex, true);	
+	if (Array.isArray(rotaryIndexArray)){
+		if (rotaryIndexArray.length > 0) {
+			rotaryIndex = rotaryIndexArray[rotaryIndexArray.length - 1];
+			return self.activateRotaries(rotaryIndexArray.slice(0,rotaryIndexArray.length - 1))
+			.then(_=> {
+				if (self.config.get('enabled'+rotaryIndex)) {
+					return self.addOverlay(self.config.get('pinA'+rotaryIndex),self.config.get('pinB'+rotaryIndex),self.config.get('rotaryType'+rotaryIndex))
+					.then(_=>{
+						return self.attachListener(self.config.get('pinA'+rotaryIndex));
+					})
+					.then(handle => {
+						return self.addEventHandle(handle, rotaryIndex)
+					})								
+				} else {
+					return defer.resolve();
+				}
+			})
 		} else {
-			self.config.set('enabled'+rotaryIndex, false);
+			if (self.debugLogging) self.logger.info('[PAPYRADIO] activateRotaries: end of recursion.');
+			defer.resolve();
 		}
-		return self.activateRotaries([...Array(maxRotaries).keys()])
-		.then(_=>{
-			return self.activateButtons([...Array(maxRotaries).keys()])
-		})
-	})
-	.then(_ => {
-		if (self.debugLogging) self.logger.info('[ROTARYENCODER2] updateEncoder: SUCCESS with Toast: '+self.getI18nString('ROTARYENCODER2.TOAST_SAVE_SUCCESS')+' ' +self.getI18nString('ROTARYENCODER2.TOAST_MSG_SAVE')+ (rotaryIndex + 1));
-		self.commandRouter.pushToastMessage('success', self.getI18nString('ROTARYENCODER2.TOAST_SAVE_SUCCESS'), self.getI18nString('ROTARYENCODER2.TOAST_MSG_SAVE')+ (rotaryIndex + 1));
-		defer.resolve();	
-	})
-	.fail(err => {
-		self.commandRouter.pushToastMessage('error', self.getI18nString('ROTARYENCODER2.TOAST_SAVE_FAIL'), self.getI18nString('ROTARYENCODER2.TOAST_MSG_SAVE')+ (rotaryIndex + 1));
-		defer.reject(err);
-	})
+	} else {
+		self.logger.error('[PAPYRADIO] activateRotaries: rotaryIndexArray must be an Array');
+		defer.reject('rotaryIndexArray must be an Array of integers')
+	} 
 	return defer.promise;
+}
+
+
+
+
+//Function to recursively deactivate all rotaries that are passed by Index in an Array ------------------------------------------------------------ 
+rotaryencoder2.prototype.deactivateRotaries = function (rotaryIndexArray) {
+	var self = this;
+	var defer = libQ.defer();
+	var rotaryIndex;
+
+	if (self.debugLogging) self.logger.info('[PAPYRADIO] deactivateRotaries: ' + rotaryIndexArray.map(i =>  {return i + 1}));
+
+	if (Array.isArray(rotaryIndexArray)){
+		if (rotaryIndexArray.length > 0) {
+			rotaryIndex = rotaryIndexArray[0];
+			self.deactivateRotaries(rotaryIndexArray.slice(1,rotaryIndexArray.length))
+			.then(_=> {
+				if (self.config.get('enabled'+rotaryIndex)) {
+					return self.detachListener(self.handles[rotaryIndex])
+					.then(_=>{ return self.checkOverlayExists(rotaryIndex)})
+					.then(idx=>{if (idx > -1) return self.removeOverlay(idx)})
+					.then(_=>{
+						if (self.debugLogging) self.logger.info('[PAPYRADIO] deactivateRotaries: deactivated rotary' + (rotaryIndex + 1));
+						return defer.resolve();
+					})												
+				} else {
+					return defer.resolve()
+				}
+			})
+		} else {
+			if (self.debugLogging) self.logger.info('[PAPYRADIO] deactivateRotaries: end of recursion.');
+			defer.resolve();
+		}
+	} else {
+		self.logger.error('[PAPYRADIO] deactivateRotaries: rotaryIndexArray must be an Array: ' + rotaryIndexArray);
+		defer.reject('rotaryIndexArray must be an Array of integers')
+	} 
+	return defer.promise;
+}
+
+
+
+
+
+
+//Function to recursively activate all buttons that are passed by Index in an Array -----------------------------------------------------------------------
+rotaryencoder2.prototype.activateButtons = function (rotaryIndexArray) {
+	var self = this;
+	var defer = libQ.defer();
+	var rotaryIndex;
+
+	if (self.debugLogging) self.logger.info('[PAPYRADIO] activateButtons: ' + rotaryIndexArray.map(i =>  {return i + 1}));
+
+	if (Array.isArray(rotaryIndexArray)){
+		if (rotaryIndexArray.length > 0) {
+			rotaryIndex = rotaryIndexArray[rotaryIndexArray.length - 1];
+			self.activateButtons(rotaryIndexArray.slice(0,rotaryIndexArray.length - 1))
+			.then(_=> {
+				if (self.config.get('enabled'+rotaryIndex)) {
+					var gpio = self.config.get('pinPush'+rotaryIndex);
+					//configure pushButton if not disabled
+					if (Number.isInteger(gpio) && (gpio > 0)) {
+						gpio = parseInt(gpio);
+						var debounce = self.config.get('pinPushDebounce'+rotaryIndex);
+						if (!Number.isInteger(debounce)){
+							debounce = 0
+						} else {
+							debounce = parseInt(debounce);
+						};
+						if (self.debugLogging) self.logger.info('[PAPYRADIO] activateButtons: Now assign push button: ' + (rotaryIndex + 1));
+						self.buttons[rotaryIndex] = new Gpio(gpio, 'in', 'both', {debounceTimeout: debounce});
+						self.buttons[rotaryIndex].watch((err,value) => {
+							if (err) {
+								return self.logger.error('[PAPYRADIO] Push Button '+(rotaryIndex+1)+' caused an error.')
+							}
+							switch (value==self.config.get('pushState'+rotaryIndex)) {
+								case true: //(falling edge & active_high) or (rising edge and active low) = released
+									var pushTime = Date.now() - self.pushDownTime[rotaryIndex]
+									if (self.debugLogging) self.logger.info('[PAPYRADIO] Push Button '+(rotaryIndex+1)+' released after '+pushTime+'ms.');
+									if (pushTime > 1500) {
+										self.emitPushCommand(true, rotaryIndex)
+									} else {
+										self.emitPushCommand(false, rotaryIndex)
+									}
+									break;
+							
+								case false: //(falling edge & active low) or (rising edge and active high) = pressed
+									if (self.debugLogging) self.logger.info('[PAPYRADIO] Push Button '+(rotaryIndex+1)+' pressed.');
+									self.pushDownTime[rotaryIndex] = Date.now();						
+									break;
+							
+								default:
+									break;
+							}
+						})
+						if (self.debugLogging) self.logger.info('[PAPYRADIO] Push Button '+(rotaryIndex+1)+' now resolving.');
+						return defer.resolve();	
+					} else {
+						if (self.debugLogging) self.logger.info('[PAPYRADIO] Push Button '+(rotaryIndex+1)+' is disabled (no Gpio).');
+						return defer.resolve();	
+					}						
+				} else {
+					return defer.resolve();	
+				}
+			})
+		} else {
+			if (self.debugLogging) self.logger.info('[PAPYRADIO] activateButtons: end of recursion.');
+			defer.resolve();
+		}
+	} else {
+		self.logger.error('[PAPYRADIO] activateButtons: rotaryIndexArray must be an Array');
+		defer.reject('rotaryIndexArray must be an Array of integers')
+	} 
+
+	return defer.promise;
+}
+
+
+
+
+
+
+
+//Function to recursively deactivate all buttons that are passed by Index in an Array -------------------------------------------------------------------------
+rotaryencoder2.prototype.deactivateButtons = function (rotaryIndexArray) {
+	var self = this;
+	var defer = libQ.defer();
+	var rotaryIndex;
+
+	if (self.debugLogging) self.logger.info('[PAPYRADIO] deactivateButtons: ' + rotaryIndexArray.map(i =>  {return i + 1}));
+
+	if (Array.isArray(rotaryIndexArray)){
+		if (rotaryIndexArray.length > 0) {
+			rotaryIndex = rotaryIndexArray[0];
+			self.deactivateButtons(rotaryIndexArray.slice(1,rotaryIndexArray.length))
+			.then(_=>{
+				if (self.config.get('enabled'+rotaryIndex)) {
+					if (self.config.get('pinPush1'+rotaryIndex)>0) {
+						self.buttons[rotaryIndex].unwatchAll();
+						self.buttons[rotaryIndex].unexport();
+						if (self.debugLogging) self.logger.info('[PAPYRADIO] deactivateButtons: deactivated button ' + (rotaryIndex + 1));
+						defer.resolve();	
+					} else {
+						if (self.debugLogging) self.logger.info('[PAPYRADIO] deactivateButtons: button ' + (rotaryIndex + 1) + ' is disabled.');
+						defer.resolve();	
+					}						
+				} else {
+					defer.resolve();
+				}
+
+			})
+		} else {
+			if (self.debugLogging) self.logger.info('[PAPYRADIO] deactivateButtons: end of recursion.');
+			defer.resolve();
+		}
+	} else {
+		self.logger.error('[PAPYRADIO] deactivateButtons: rotaryIndexArray must be an Array');
+		defer.reject('rotaryIndexArray must be an Array of integers')
+	} 
+	return defer.promise;
+}
+
+
+
+
+
+
+
+
+
+
+//CODE DU PLUGIN --------------------------------------------------------------------------------------------------------------------------------------- 
+
+rotaryencoder2.prototype.addEventHandle = function (handle, rotaryIndex) {
+	var self = this; 
+
+	if (self.debugLogging) self.logger.info('[PAPYRADIO] addEventHandle for rotary: ' + (rotaryIndex + 1));
+
+	self.handles[rotaryIndex]=handle;
+	self.handles[rotaryIndex].stdout.on("data", function (chunk) {
+		var i=0;
+		while (chunk.length - i >= 16) {
+			var type = chunk.readUInt16LE(i+8)
+			var value = chunk.readInt32LE(i+12)
+			i += 16
+			if (type == 2) {
+				if (self.debugLogging) self.logger.info('[PAPYRADIO] addEventHandle received from rotary: '+(rotaryIndex +1) + ' -> Dir: '+value)
+				self.emitDialCommand(value,rotaryIndex)
+			} 
+		}
+	});
 
 }
 
-//Checks if the user settings in the GUI make sense -----------------------------------------------------------------------------------
-rotaryencoder2.prototype.sanityCheckSettings = function(rotaryIndex, data){
+rotaryencoder2.prototype.emitDialCommand = function(val,rotaryIndex){
 	var self = this;
-	var defer = libQ.defer();
-	var newPins = [];
-	var otherPins = [];
-	var allPins = [];
+	var action = self.config.get('dialAction'+rotaryIndex)
+	if (self.debugLogging) self.logger.info('[PAPYRADIO] emitDialCommand: '+action + ' with value ' + val + 'for Rotary: '+(rotaryIndex + 1))
 
-	if (self.debugLogging) self.logger.info('[ROTARYENCODER2] sanityCheckSettings: Rotary'+(rotaryIndex + 1)+' for:' + JSON.stringify(data));
+	switch (val) {
+		case 1: //CW
+			switch (action) {
+				case dialActions.indexOf("VOLUME"): //0
+					self.socket.emit('volume','+');					
+					if (self.debugLogging) self.logger.info('[PAPYRADIO] emitDialCommand: VOLUME UP')
+					break;
+			
+				case dialActions.indexOf("SKIP"): //1
+					self.socket.emit('next');
+					// Read the JSON file
+					fs.readFile('./radios.json', 'utf-8', (err, data) => {
+					    if (err) throw err;
+					    // Parse the JSON data
+					    const radioData = JSON.parse(data);
+					    // Get the radio frequency passed as parameter
+					    //const radioFrequency = process.argv[2];
+					    // Search for the radio with the given frequency
+					    let freqFM = frequence.toString() + " FM";
+					    const radio = radioData.radios.find(radio => radio.frequency === freqFM);
+					    console.log(radio);
+					}
+					break;			
+				default:
+					break;
+			}
+			break;
+		case -1: //CCW
+			switch (action) {
+				case dialActions.indexOf("VOLUME"): //0
+					self.socket.emit('volume','-');					
+					if (self.debugLogging) self.logger.info('[ROTARYENCODER2] emitDialCommand: VOLUME DOWN')
+					break;
+			
+				case dialActions.indexOf("SKIP"): //1
+					self.socket.emit('prev');				
+					break;
+				default:
+					break;
+			}
+			break;
+		default:
+			break;
+	}
+}
 
-	//Disabling rotaries is always allowed
-	if (data['enabled'+rotaryIndex] == false) {
-		if (self.config.get('enabled'+rotaryIndex) == true) {
-			if (self.debugLogging) self.logger.info('[ROTARYENCODER2] sanityCheckSettings: Disabling rotary ' + (rotaryIndex+1) +' is OK.' );
-			defer.resolve();	
-		} else {
-			if (self.debugLogging) self.logger.info('[ROTARYENCODER2] sanityCheckSettings: Rotary ' + (rotaryIndex+1) +' was already disabled, nothing to do.' );
-			defer.resolve();	
+
+rotaryencoder2.prototype.emitPushCommand = function(longPress,rotaryIndex){
+	var self = this;
+	var cmd = '';
+	var data = '';
+	if (longPress) {
+		var action = self.config.get('longPushAction'+rotaryIndex)
+		if (action == btnActions.indexOf("EMIT")) {
+			cmd = self.config.get('socketCmdLongPush' + rotaryIndex);
+			data = self.config.get('socketDataLongPush' + rotaryIndex);
 		} 
 	} else {
-		if (data['pinPush'+rotaryIndex] == '') {
-			data['pinPush'+rotaryIndex] = '0' //if pinPush is empty, set it to 0 (disabled)
-		}
-		//check if GPIO pins are integer
-		if (!Number.isInteger(parseInt(data['pinA'+rotaryIndex])) || !Number.isInteger(parseInt(data['pinB'+rotaryIndex])) || !Number.isInteger(parseInt(data['pinPush'+rotaryIndex]))) {
-			self.commandRouter.pushToastMessage('error', self.getI18nString('ROTARYENCODER2.TOAST_WRONG_PARAMETER'), self.getI18nString('ROTARYENCODER2.TOAST_NEEDS_INTEGER'));
-			if (self.debugLogging) self.logger.error('[ROTARYENCODER2] sanityCheckSettings: Pin values must be Integer ' );
-			defer.reject('Pin value must be integer.');
-		} else { 
-			newPins.push(parseInt(data['pinA'+rotaryIndex]));
-			newPins.push(parseInt(data['pinB'+rotaryIndex]));
-			if (data['pinPush'+rotaryIndex] > 0) {
-				newPins.push(parseInt(data['pinPush'+rotaryIndex]));
-			}
-			for (let i = 0; i < maxRotaries; i++) {
-				if ((!i==rotaryIndex) && (this.config.get('enabled'+i))) {
-					otherPins.push(parseInt(this.config.get('pinA'+i)));
-					otherPins.push(parseInt(this.config.get('pinB'+i)));
-					otherPins.push(parseInt(this.config.get('pinPush'+i)));
-				}
-			}
-			//check if duplicate number used
-			if (newPins.some((item,index) => newPins.indexOf(item) != index)) {
-				self.commandRouter.pushToastMessage('error', self.getI18nString('ROTARYENCODER2.TOAST_WRONG_PARAMETER'), self.getI18nString('ROTARYENCODER2.TOAST_PINS_DIFFERENT'));
-				self.logger.error('[ROTARYENCODER2] sanityCheckSettings: duplicate pins. new: ' + newPins );
-				defer.reject('Duplicate pin numbers provided.');
-			} else {
-				//check if any of the numbers used is also used in another active rotary
-				allPins = [...otherPins, ...newPins];
-				if (allPins.some((item,index) => allPins.indexOf(item) != index)) {
-					self.commandRouter.pushToastMessage('error', self.getI18nString('ROTARYENCODER2.TOAST_WRONG_PARAMETER'), self.getI18nString('ROTARYENCODER2.TOAST_PINS_BLOCKED'));
-					self.logger.error('[ROTARYENCODER2] sanityCheckSettings: Pin(s) used in other rotary already.');
-					defer.reject('One or more pins already used in other rotary.')
-				} else {
-					//check if Rotary Type is selected
-					if (![1,2,4].includes(data['rotaryType'+rotaryIndex].value)) {
-						self.commandRouter.pushToastMessage('error', self.getI18nString('ROTARYENCODER2.TOAST_WRONG_PARAMETER'), self.getI18nString('ROTARYENCODER2.TOAST_NO_TYPE'));
-						self.logger.error('[ROTARYENCODER2] sanityCheckSettings: Periods per tick not set.');
-						defer.reject('Must select periods per tick.')
-					} else {		
-						data['pinPushDebounce'+rotaryIndex] = Math.max(0,data['pinPushDebounce'+rotaryIndex]);
-						data['pinPushDebounce'+rotaryIndex] = Math.min(1000,data['pinPushDebounce'+rotaryIndex]);
-						defer.resolve('pass');	
-					}
-				}		
-			}
-		}				
+		var action = self.config.get('pushAction'+rotaryIndex)
+		if (action == btnActions.indexOf("EMIT")) {
+			cmd = self.config.get('socketCmdPush' + rotaryIndex);
+			data = self.config.get('socketDataPush' + rotaryIndex);
+		} 
 	}
-	return defer.promise;
+	if (self.debugLogging) self.logger.info('[PAPYRADIO] emitPushCommand: '+action + 'for Rotary: '+(rotaryIndex + 1))
+
+	switch (action) {
+		case btnActions.indexOf("PLAY"): //1
+			self.socket.emit('play')
+			// Check if the radio was found
+			if (radio) {
+				// Get the URL of the radio
+				const radioURL = radio.url;
+				const radioURlString = radioURL.toString();
+				console.log(radioURL);
+				// Play the radio using Volumio
+				const socket = re.io("http://volumio.local");
+				socket.emit('play', {"value": radioURlString});
+				console.log("Playing webRadio : " + radioURlString);
+				//socket.close();
+			    } else {
+				//TROUVER UN MOYEN DE LUI FAIRE JOUER LE BRUIT BLANC
+				//console.error(`Radio with frequency ${freqFM} not found`);
+			    }
+			break;
+		case btnActions.indexOf("STOP"): //1
+			self.socket.emit('stop')
+			break;
+		case btnActions.indexOf("SHUTDOWN"): //2
+			self.socket.emit('shutdown')
+			break;
+		case btnActions.indexOf("REBOOT"): //3
+			self.socket.emit('reboot')
+			break;
+			
+		default:
+			break;
+	}
 }
-
-
-
 
 
