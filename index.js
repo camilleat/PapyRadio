@@ -444,37 +444,6 @@ PapyRadio.prototype.playRadio= function(station){
     console.log(`Playing : ${station}`);
 }
 
-PapyRadio.prototype.readURL = function(frequence){
-    return new Promise((resolve, reject) => {
-        fs.readFile('./radios.json', 'utf-8', (err, data) => {
-            if (err) reject(err);
-            const radioData = JSON.parse(data);
-            let radio = radioData.radios.find(radio => frequence === radio.frequency);
-            let urlRadio = "";
-            if(radio) {
-                urlRadio = radio.url;
-            }
-            resolve(urlRadio);
-        });
-    });
-};
-
-PapyRadio.prototype.playRadio= function(station){
-    const commande = 'http://localhost:3000/api/v1/commands/?cmd=play';
-    const options = {
-        method : "POST",
-        headers : {"Content-Type": "application/json"},
-        body : JSON.stringify({uri: station})
-    };
-    request(commande, options, function(error, response, body){
-        if(error){
-            console.log(error);
-        }else{
-            console.log("Playing radio" + station);
-        }
-    })
-    console.log(`Playing : ${station}`);
-}
 
 //gère les rotary encoders
 PapyRadio.prototype.emitDialCommand = function(val,rotaryIndex){
