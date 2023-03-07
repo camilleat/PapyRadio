@@ -5,7 +5,6 @@ var fs=require('fs-extra');
 const path=require('path');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
-var frequence = 103.1;
 
 const Gpio = require('onoff').Gpio;
 const io = require('socket.io-client');
