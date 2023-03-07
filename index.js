@@ -43,8 +43,6 @@ function PapyRadio(context) {
 	this.configManager = this.context.configManager;
 }
 
-
-
 //Configure les settings quand l'appli Volumio démarre ------------------------------------------------------------------------------------------------------------
 
 PapyRadio.prototype.onVolumioStart = function()
@@ -414,6 +412,71 @@ PapyRadio.prototype.addEventHandle = function (handle, rotaryIndex) {
 
 }
 
+PapyRadio.prototype.readURL = function(frequence){
+    return new Promise((resolve, reject) => {
+        fs.readFile('./radios.json', 'utf-8', (err, data) => {
+            if (err) reject(err);
+            const radioData = JSON.parse(data);
+            let radio = radioData.radios.find(radio => frequence === radio.frequency);
+            let urlRadio = "";
+            if(radio) {
+                urlRadio = radio.url;
+            }
+            resolve(urlRadio);
+        });
+    });
+};
+
+PapyRadio.prototype.playRadio= function(station){
+    const commande = 'http://localhost:3000/api/v1/commands/?cmd=play';
+    const options = {
+        method : "POST",
+        headers : {"Content-Type": "application/json"},
+        body : JSON.stringify({uri: station})
+    };
+    request(commande, options, function(error, response, body){
+        if(error){
+            console.log(error);
+        }else{
+            console.log("Playing radio" + station);
+        }
+    })
+    console.log(`Playing : ${station}`);
+}
+
+PapyRadio.prototype.readURL = function(frequence){
+    return new Promise((resolve, reject) => {
+        fs.readFile('./radios.json', 'utf-8', (err, data) => {
+            if (err) reject(err);
+            const radioData = JSON.parse(data);
+            let radio = radioData.radios.find(radio => frequence === radio.frequency);
+            let urlRadio = "";
+            if(radio) {
+                urlRadio = radio.url;
+            }
+            resolve(urlRadio);
+        });
+    });
+};
+
+PapyRadio.prototype.playRadio= function(station){
+    const commande = 'http://localhost:3000/api/v1/commands/?cmd=play';
+    const options = {
+        method : "POST",
+        headers : {"Content-Type": "application/json"},
+        body : JSON.stringify({uri: station})
+    };
+    request(commande, options, function(error, response, body){
+        if(error){
+            console.log(error);
+        }else{
+            console.log("Playing radio" + station);
+        }
+    })
+    console.log(`Playing : ${station}`);
+}
+
+//gère les rotary encoders
 PapyRadio.prototype.emitDialCommand = function(val,rotaryIndex){
 	var self = this;
 	var action = self.config.get('dialAction'+rotaryIndex)
@@ -430,17 +493,6 @@ PapyRadio.prototype.emitDialCommand = function(val,rotaryIndex){
 				case dialActions.indexOf("SKIP"): //1
 					self.socket.emit('next');
 					// Read the JSON file
-					fs.readFile('./radios.json', 'utf-8', (err, data) => {
-					    if (err) throw err;
-					    // Parse the JSON data
-					    const radioData = JSON.parse(data);
-					    // Get the radio frequency passed as parameter
-					    //const radioFrequency = process.argv[2];
-					    // Search for the radio with the given frequency
-					    let freqFM = frequence.toString() + " FM";
-					    const radio = radioData.radios.find(radio => radio.frequency === freqFM);
-					    console.log(radio);
-					}
 					break;			
 				default:
 					break;
@@ -465,7 +517,7 @@ PapyRadio.prototype.emitDialCommand = function(val,rotaryIndex){
 	}
 }
 
-
+//gère les boutons
 PapyRadio.prototype.emitPushCommand = function(longPress,rotaryIndex){
 	var self = this;
 	var cmd = '';
@@ -518,6 +570,5 @@ PapyRadio.prototype.emitPushCommand = function(longPress,rotaryIndex){
 			break;
 	}
 }
-
 
 
