@@ -45,9 +45,6 @@ function PapyRadio(context) {
 
 
 
-
-
-
 //Configure les settings quand l'appli Volumio démarre ------------------------------------------------------------------------------------------------------------
 
 PapyRadio.prototype.onVolumioStart = function()
@@ -59,9 +56,6 @@ PapyRadio.prototype.onVolumioStart = function()
 
     return libQ.resolve();
 }
-
-
-
 
 
 //Configure les settings quand le plugin PapyRadio démarre ------------------------------------------------------------------------------------------------------------
@@ -106,8 +100,6 @@ PapyRadio.prototype.onStart = function() {
 
 
 
-
-
 //Configure les settings quand le plugin PapyRadio s'arrête ------------------------------------------------------------------------------------------------------------
 PapyRadio.prototype.onStop = function() {
     var self = this;
@@ -144,8 +136,6 @@ PapyRadio.prototype.onRestart = function() {
 
 	if (self.debugLogging) self.logger.info('[PAPYRADIO] onRestart: free resources');
 };
-
-
 
 
 
@@ -208,9 +198,6 @@ PapyRadio.prototype.getUIConfig = function() {
 PapyRadio.prototype.getConfigurationFiles = function() {
 	return ['config.json'];
 }
-
-
-
 
 
 
@@ -291,9 +278,6 @@ PapyRadio.prototype.deactivateRotaries = function (rotaryIndexArray) {
 
 
 
-
-
-
 //Function to recursively activate all buttons that are passed by Index in an Array -----------------------------------------------------------------------
 PapyRadio.prototype.activateButtons = function (rotaryIndexArray) {
 	var self = this;
@@ -367,11 +351,6 @@ PapyRadio.prototype.activateButtons = function (rotaryIndexArray) {
 }
 
 
-
-
-
-
-
 //Function to recursively deactivate all buttons that are passed by Index in an Array -------------------------------------------------------------------------
 PapyRadio.prototype.deactivateButtons = function (rotaryIndexArray) {
 	var self = this;
@@ -410,14 +389,6 @@ PapyRadio.prototype.deactivateButtons = function (rotaryIndexArray) {
 	} 
 	return defer.promise;
 }
-
-
-
-
-
-
-
-
 
 
 //CODE DU PLUGIN --------------------------------------------------------------------------------------------------------------------------------------- 
