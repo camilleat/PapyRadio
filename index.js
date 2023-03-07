@@ -76,7 +76,7 @@ PapyRadio.prototype.onStart = function() {
 	self.status=null;
 	self.loadI18nStrings();
 
-	if (self.debugLogging) self.logger.info('[PAPAYRADIO] onStart: Config loaded: ' + JSON.stringify(self.config));
+	if (self.debugLogging) self.logger.info('[PAPYRADIO] onStart: Config loaded: ' + JSON.stringify(self.config));
 
 	self.socket = io.connect('http://localhost:3000');
 	self.socket.emit('getState');
