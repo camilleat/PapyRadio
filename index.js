@@ -215,7 +215,7 @@ PapyRadio.prototype.getConfigurationFiles = function() {
 
 
 //Function to recursively activate all rotaries that are passed by Index in an Array -----------------------------------------------------------------------
-rotaryencoder2.prototype.activateRotaries = function (rotaryIndexArray) {
+PapyRadio.prototype.activateRotaries = function (rotaryIndexArray) {
 	var self = this;
 	var defer = libQ.defer();
 	var rotaryIndex;
@@ -254,7 +254,7 @@ rotaryencoder2.prototype.activateRotaries = function (rotaryIndexArray) {
 
 
 //Function to recursively deactivate all rotaries that are passed by Index in an Array ------------------------------------------------------------ 
-rotaryencoder2.prototype.deactivateRotaries = function (rotaryIndexArray) {
+PapyRadio.prototype.deactivateRotaries = function (rotaryIndexArray) {
 	var self = this;
 	var defer = libQ.defer();
 	var rotaryIndex;
@@ -295,7 +295,7 @@ rotaryencoder2.prototype.deactivateRotaries = function (rotaryIndexArray) {
 
 
 //Function to recursively activate all buttons that are passed by Index in an Array -----------------------------------------------------------------------
-rotaryencoder2.prototype.activateButtons = function (rotaryIndexArray) {
+PapyRadio.prototype.activateButtons = function (rotaryIndexArray) {
 	var self = this;
 	var defer = libQ.defer();
 	var rotaryIndex;
@@ -373,7 +373,7 @@ rotaryencoder2.prototype.activateButtons = function (rotaryIndexArray) {
 
 
 //Function to recursively deactivate all buttons that are passed by Index in an Array -------------------------------------------------------------------------
-rotaryencoder2.prototype.deactivateButtons = function (rotaryIndexArray) {
+PapyRadio.prototype.deactivateButtons = function (rotaryIndexArray) {
 	var self = this;
 	var defer = libQ.defer();
 	var rotaryIndex;
@@ -422,7 +422,7 @@ rotaryencoder2.prototype.deactivateButtons = function (rotaryIndexArray) {
 
 //CODE DU PLUGIN --------------------------------------------------------------------------------------------------------------------------------------- 
 
-rotaryencoder2.prototype.addEventHandle = function (handle, rotaryIndex) {
+PapyRadio.prototype.addEventHandle = function (handle, rotaryIndex) {
 	var self = this; 
 
 	if (self.debugLogging) self.logger.info('[PAPYRADIO] addEventHandle for rotary: ' + (rotaryIndex + 1));
@@ -443,7 +443,7 @@ rotaryencoder2.prototype.addEventHandle = function (handle, rotaryIndex) {
 
 }
 
-rotaryencoder2.prototype.emitDialCommand = function(val,rotaryIndex){
+PapyRadio.prototype.emitDialCommand = function(val,rotaryIndex){
 	var self = this;
 	var action = self.config.get('dialAction'+rotaryIndex)
 	if (self.debugLogging) self.logger.info('[PAPYRADIO] emitDialCommand: '+action + ' with value ' + val + 'for Rotary: '+(rotaryIndex + 1))
@@ -495,7 +495,7 @@ rotaryencoder2.prototype.emitDialCommand = function(val,rotaryIndex){
 }
 
 
-rotaryencoder2.prototype.emitPushCommand = function(longPress,rotaryIndex){
+PapyRadio.prototype.emitPushCommand = function(longPress,rotaryIndex){
 	var self = this;
 	var cmd = '';
 	var data = '';
