@@ -430,21 +430,13 @@ PapyRadio.prototype.readURL = function(frequence){
     });
 };
 
-PapyRadio.prototype.playRadio= function(station){
-    const commande = 'http://localhost:3000/api/v1/commands/?cmd=play';
-    const options = {
-        method : "POST",
-        headers : {"Content-Type": "application/json"},
-        body : JSON.stringify({uri: station})
-    };
-    request(commande, options, function(error, response, body){
-        if(error){
-            console.log(error);
-        }else{
-            console.log("Playing radio" + station);
-        }
-    })
-    console.log(`Playing : ${station}`);
+PapyRadioPlugin.prototype.playRadio = function(station){
+    socket.emit('replaceAndPlay', {
+        service:'webradio',
+        type:'webradio',
+        title:station,
+        uri: station
+    });
 }
 
 
@@ -514,20 +506,7 @@ PapyRadio.prototype.emitPushCommand = function(longPress,rotaryIndex){
 		case btnActions.indexOf("PLAY"): //1
 			self.socket.emit('play')
 			// Check if the radio was found
-			if (radio) {
-				// Get the URL of the radio
-				const radioURL = radio.url;
-				const radioURlString = radioURL.toString();
-				console.log(radioURL);
-				// Play the radio using Volumio
-				const socket = re.io("http://volumio.local");
-				socket.emit('play', {"value": radioURlString});
-				console.log("Playing webRadio : " + radioURlString);
-				//socket.close();
-			    } else {
-				//TROUVER UN MOYEN DE LUI FAIRE JOUER LE BRUIT BLANC
-				//console.error(`Radio with frequency ${freqFM} not found`);
-			    }
+		
 			break;
 		case btnActions.indexOf("STOP"): //1
 			self.socket.emit('stop')
@@ -535,7 +514,7 @@ PapyRadio.prototype.emitPushCommand = function(longPress,rotaryIndex){
 		case btnActions.indexOf("SHUTDOWN"): //2
 			self.socket.emit('shutdown')
 			break;
-		case btnActions.indexOf("REBOOT"): //3
+		case btnActions.indexOf("REBOOT"): //
 			self.socket.emit('reboot')
 			break;
 			
