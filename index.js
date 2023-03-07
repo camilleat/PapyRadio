@@ -31,6 +31,8 @@ const btnActions = new Array(
 	"REBOOT"
 );
 
+var frequence_courante = "87.6 FM";
+
 //Constructeur ----------------------------------------------------------------------------------------------------------------------------------------------------
 
 module.exports = PapyRadio;
@@ -57,7 +59,7 @@ PapyRadio.prototype.onVolumioStart = function()
 
 
 //Configure les settings quand le plugin PapyRadio démarre ------------------------------------------------------------------------------------------------------------
-PapyRadio.prototype.onStart = function() {
+PapyRadio.prototype.onStart = async function() {
     var self = this;
 	var defer=libQ.defer();
 	
@@ -92,6 +94,8 @@ PapyRadio.prototype.onStart = function() {
 		self.logger.error('[PAPYRADIO] onStart: Rotarys not initialized: '+error);
 		defer.reject();
 	});
+	let station = await self.readURL(frequence_courante);
+	self.playRadio(station);
 
     return defer.promise;
 };
@@ -446,7 +450,7 @@ PapyRadio.prototype.playRadio= function(station){
 
 
 //gère les rotary encoders
-PapyRadio.prototype.emitDialCommand = function(val,rotaryIndex){
+PapyRadio.prototype.emitDialCommand = async function(val,rotaryIndex){
 	var self = this;
 	var action = self.config.get('dialAction'+rotaryIndex)
 	if (self.debugLogging) self.logger.info('[PAPYRADIO] emitDialCommand: '+action + ' with value ' + val + 'for Rotary: '+(rotaryIndex + 1))
@@ -461,6 +465,7 @@ PapyRadio.prototype.emitDialCommand = function(val,rotaryIndex){
 			
 				case dialActions.indexOf("SKIP"): //1
 					self.socket.emit('next');
+					
 					// Read the JSON file
 					break;			
 				default:
